@@ -18,13 +18,15 @@ PLAYERCOLOR2 =(255, 68, 0)
 RECOVERING_TIME = 1000
 RECOVERED_TIME = 0
 class Balls():
-    def __init__(self, i_pos_x, i_pos_y, i_dir_x, i_dir_y):
+    def __init__(self, i_pos_x, i_pos_y, i_dir_x, i_dir_y , i_hp):
         super().__init__()
         self.pos_x = i_pos_x
         self.pos_y = i_pos_y
         self.dir_x = i_dir_x
         self.dir_y = i_dir_y
         self.rect = pygame.Rect(self.pos_x, self.pos_y, BALL_SIZE[0], BALL_SIZE[1])
+        self.Isdead = False
+        self.hp = i_hp
     pass
     def update(self):
         self.rect.bottom += self.dir_y
@@ -34,6 +36,11 @@ class Balls():
         elif (self.rect.left <= 0 or self.rect.right >= SCREEN_SIZE[0]):
             self.dir_x *= -1
     pass
+    def hitted(self):
+        self.hp -=1
+        if (self.hp <=0):
+            self.Isdead = True
+    pass
 pass
 
 class Bullets():
@@ -41,7 +48,7 @@ class Bullets():
         super().__init__()
         self.pos_x = i_pos_x
         self.pos_y = i_pos_y
-        self.dir_y = -1
+        self.dir_y = -5
         self.rect = pygame.Rect(self.pos_x , self.pos_y ,BULLTE_SIZE[0] , BULLTE_SIZE[1] )
     pass
     def update(self):
@@ -50,6 +57,7 @@ class Bullets():
 pass
 
 class Player:
+    Edge_Way = 0
     def __init__(self, i_pos_x, i_pos_y):
         super().__init__()
         self.pos_x = i_pos_x
@@ -57,10 +65,50 @@ class Player:
         self.rect = pygame.Rect(self.pos_x, self.pos_y, PLAYER_SIZE[0], PLAYER_SIZE[1])
         self.bullet_list = []
         self.recovering = False
+        self.hp = 3
+        self.Isdead = False
     pass
     def shot(self):
         newbullet = Bullets(self.rect.left+15, self.rect.top)
         self.bullet_list.append(newbullet)
+    pass
+
+    def hitted(self):
+        self.hp -=1
+        if (self.hp <=0):
+            self.Isdead = True
+    pass
+
+    def check_Edge(self):
+        if (self.rect.top <= 0):
+            self.rect.top = 0
+        if (self.rect.bottom >= SCREEN_SIZE[1]):
+            self.rect.bottom = SCREEN_SIZE[1]
+        if (self.rect.left <=0):
+            self.rect.left = 0
+        if (self.rect.right >= SCREEN_SIZE[0]):
+            self.rect.right = SCREEN_SIZE[0]
+        pass
+    pass
+
+    def move_left(self):
+        self.rect.left = self.rect.left - 5
+        pass
+    pass
+
+    def move_right(self):
+        self.rect.right = self.rect.right + 5
+        pass
+    pass
+
+    def move_up(self):
+        self.rect.top = self.rect.top - 5
+        pass
+    pass
+
+    def move_down(self):
+        self.rect.bottom = self.rect.bottom + 5
+        pass
     pass
 pass
 class Game():
@@ -76,30 +124,16 @@ class Game():
             self.ball_pos_y = random.randint(BALL_SIZE[1],SCREEN_SIZE[1]- BALL_SIZE[1])
             self.ball_dir_x = -2 #-1=left 1=right
             self.ball_dir_y = -3 # -1=up 1=down
-            self.ball = Balls(self.ball_pos_x,self.ball_pos_y,self.ball_dir_x,self.ball_dir_y)
+            self.ball = Balls(self.ball_pos_x,self.ball_pos_y,self.ball_dir_x,self.ball_dir_y ,3)
             self.ball_list.append(self.ball)
         pass
     pass
-    def player_move(self , way , I_value):
-        ways = [self.player.rect.left , self.player.rect.bottom,self.player.rect.top , self.player.rect.bottom]
-        ways[way] += I_value
+    def draw_player_hp(self , screen):
+        myfont = pygame.font.SysFont('Comic Sans MS', 30)
+        textsurface = myfont.render('HP:' + str(self.player.hp), False, (255, 255, 255))
+        screen.blit(textsurface, (10, 10))
     pass
 
-    def player_move_left(self):
-        self.player.rect.left = self.player.rect.left - 5
-    pass
-
-    def player_move_right(self):
-        self.player.rect.right = self.player.rect.right + 5
-    pass
-
-    def player_move_up(self):
-        self.player.rect.top = self.player.rect.top - 5
-    pass
-
-    def player_move_down(self):
-        self.player.rect.bottom = self.player.rect.bottom + 5
-    pass
     def run (self):
         self.player = Player(SCREEN_SIZE_MID + 30, SCREEN_SIZE[1] - 30)
         def addbulllet(player):
@@ -110,13 +144,16 @@ class Game():
                 for enemy in self.ball_list:
                     if (pygame.Rect.colliderect(bullet.rect , enemy.rect) and self.player.bullet_list.__contains__(bullet)):
                         self.player.bullet_list.remove(bullet)
+                        enemy.hitted()
+                        if (enemy.Isdead):
+                            self.ball_list.remove(enemy)
                     pass
                 pass
             pass
             for enemy in self.ball_list:
                 if (pygame.Rect.colliderect(self.player.rect , enemy.rect) and (self.player.recovering!=True)):
-                    print("good")
                     self.player.recovering = True
+                    self.player.hitted()
                     global RECOVERED_TIME
                     RECOVERED_TIME =time.time()
                 pass
@@ -153,13 +190,14 @@ class Game():
                     player_move_down = False
                 pass
             if player_move_left == True and player_move_right == False:
-                self.player_move_left()
+                self.player.move_left()
             if player_move_left == False and player_move_right == True:
-                self.player_move_right()
+                self.player.move_right()
             if player_move_up == True and player_move_down == False:
-                self.player_move_up()
+                self.player.move_up()
             if player_move_up == False and player_move_down == True:
-                self.player_move_down()
+                self.player.move_down()
+            self.player.check_Edge()
             if self.player.recovering:
                 global PLAYERCOLOR
                 PLAYERCOLOR = RED
@@ -172,6 +210,7 @@ class Game():
                 self.player.recovering = False
             pass
             self.screen.fill(BLACK)
+            self.draw_player_hp(self.screen)
             detect_conlision()
             print(PLAYERCOLOR)
             pygame.draw.rect(self.screen, PLAYERCOLOR, self.player.rect)

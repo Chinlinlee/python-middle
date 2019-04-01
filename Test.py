@@ -128,10 +128,10 @@ class Game():
             self.ball_list.append(self.ball)
         pass
     pass
-    def draw_player_hp(self , screen):
+    def draw_text(self , screen , text , x , y , color = (255,255,255)):
         myfont = pygame.font.SysFont('Comic Sans MS', 30)
-        textsurface = myfont.render('HP:' + str(self.player.hp), False, (255, 255, 255))
-        screen.blit(textsurface, (10, 10))
+        textsurface = myfont.render(text, False, color)
+        screen.blit(textsurface, (x, y))
     pass
 
     def run (self):
@@ -210,7 +210,13 @@ class Game():
                 self.player.recovering = False
             pass
             self.screen.fill(BLACK)
-            self.draw_player_hp(self.screen)
+            if (not(self.player.Isdead)):
+                self.draw_text(self.screen ,'HP:' + str(self.player.hp) , 10 ,10)
+            else:
+                self.draw_text(self.screen , 'Game over' , SCREEN_SIZE[0]/2 -70 , SCREEN_SIZE[1] /2)
+                pygame.display.update()
+                self.clock.tick(60)
+                continue
             detect_conlision()
             print(PLAYERCOLOR)
             pygame.draw.rect(self.screen, PLAYERCOLOR, self.player.rect)

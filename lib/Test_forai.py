@@ -15,8 +15,7 @@ class Game_Config():
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
     RED = (255,0,0)
-    SCREEN_SIZE = [320,400]
-    BAR_SIZE = [20, 5]
+    SCREEN_SIZE = [200,300]
     BALL_SIZE = [15, 15]
     BULLTE_SIZE = [3,15]
     PLAYER_SIZE = [10,10]
@@ -42,12 +41,12 @@ class Balls():
     def update(self):
         self.rect.bottom += self.dir_y
         self.rect.left+= self.dir_x
-        if (self.rect.top <= 0 or self.rect.bottom >= Game_Config.SCREEN_SIZE[1]):
-            self.dir_x = Game_Config.MOVE_X_WAY[random.randint(0, 2)]
-            self.dir_y =Game_Config.MOVE_Y_WAY[random.randint(0,1)]
+        if (self.rect.top <= 0):
+            self.dir_y *= -1
         if (self.rect.left <= 0 or self.rect.right >= Game_Config.SCREEN_SIZE[0]):
-            self.dir_x =Game_Config.MOVE_X_WAY[random.randint(0,2)]
-            self.dir_y = Game_Config.MOVE_Y_WAY[random.randint(0, 1)]
+            self.dir_x *= -1
+        if (self.rect.bottom >= Game_Config.SCREEN_SIZE[1]):
+            self.Isdead = True
     pass
 
     def hitted(self , damage):
@@ -84,7 +83,7 @@ class Player(Balls):
     pass
 
     def shot(self):
-        newbullet = Bullets(self.rect.left+15, self.rect.top)
+        newbullet = Bullets(self.rect.left+5, self.rect.top)
         self.bullet_list.append(newbullet)
     pass
 
@@ -95,6 +94,7 @@ class Player(Balls):
     pass
 
     def check_Edge(self):
+        self.IsEdge =False
         if (self.rect.top <= 0):
             self.rect.top = 0
         if (self.rect.bottom >= Game_Config.SCREEN_SIZE[1]):
@@ -138,7 +138,7 @@ class Game():
         pygame.display.set_caption('Simple Game')
         self.ball_list.clear()
         self.bullet_list.clear()
-        for i in range(10):
+        for i in range(5):
             self.Add_Enemy(random.randint(Game_Config.BALL_SIZE[0],
                                          Game_Config.SCREEN_SIZE[0] - Game_Config.BALL_SIZE[0] -15),
                            random.randint(Game_Config.BALL_SIZE[1],
@@ -172,11 +172,11 @@ class Game():
                     self.player.recovering = True
                     self.player.hitted()
                     Game_Config.RECOVERED_TIME = time.time()
-                    return True , enemy
+                    return True
                 else:
-                    return False , 123
+                    return False
             pass
-        return False , 123
+        return False
     pass
 
     def detect_collision_enemy(self):
@@ -215,7 +215,7 @@ class Game():
             if event.type == USEREVENT+1:
                 self.player.shot()
             if event.type == USEREVENT+2:
-                if (len(self.ball_list) <10):
+                if (len(self.ball_list) <5):
                     self.Add_Enemy(random.randint(Game_Config.BALL_SIZE[0],
                                          Game_Config.SCREEN_SIZE[0] - Game_Config.BALL_SIZE[0] -15), 15)
         # action是MOVE_STAY、MOVE_LEFT、MOVE_RIGHT、MOVE_UP、MOVE_DOWN
@@ -260,13 +260,13 @@ class Game():
         pass
 
         reward = 0
-        IsCollide , CollideEnemy = self.detect_collision_player()
+        IsCollide  = self.detect_collision_player()
 
         if (self.detect_collision_enemy() and not(IsCollide)):
             reward += 5  # 击中奖励
         if (IsCollide):
-            player_pos = abs(self.player.rect.right + self.player.rect.left) / 2.0
-            enemy_pos = abs(CollideEnemy.rect.right + CollideEnemy.rect.left) / 2.0
+            #player_pos = abs(self.player.rect.right + self.player.rect.left) / 2.0
+            #enemy_pos = abs(CollideEnemy.rect.right + CollideEnemy.rect.left) / 2.0
             # reward = -5*((abs( bar_pos -  ball_pos ))/(Game_Config.BAR_SIZE))
             #reward = -10 * (Game_Config.BALL_SIZE[0] / abs(player_pos - enemy_pos))
             reward += -20

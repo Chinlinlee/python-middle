@@ -43,9 +43,11 @@ class Balls():
         self.rect.bottom += self.dir_y
         self.rect.left+= self.dir_x
         if (self.rect.top <= 0 or self.rect.bottom >= Game_Config.SCREEN_SIZE[1]):
+            self.dir_x = Game_Config.MOVE_X_WAY[random.randint(0, 2)]
             self.dir_y =Game_Config.MOVE_Y_WAY[random.randint(0,1)]
         if (self.rect.left <= 0 or self.rect.right >= Game_Config.SCREEN_SIZE[0]):
             self.dir_x =Game_Config.MOVE_X_WAY[random.randint(0,2)]
+            self.dir_y = Game_Config.MOVE_Y_WAY[random.randint(0, 1)]
     pass
 
     def hitted(self , damage):

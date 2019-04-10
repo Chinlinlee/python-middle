@@ -15,16 +15,18 @@ class Game_Config():
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
     RED = (255,0,0)
-    SCREEN_SIZE = [320, 400]
+    SCREEN_SIZE = [320,400]
     BAR_SIZE = [20, 5]
     BALL_SIZE = [15, 15]
     BULLTE_SIZE = [3,15]
-    PLAYER_SIZE = [30,30]
+    PLAYER_SIZE = [10,10]
     SCREEN_SIZE_MID = SCREEN_SIZE[0] / 2
     PLAYERCOLOR =(222, 222, 222)
-    PLAYERCOLOR2 =(255, 68, 0)
+    YELLOW = (255,255,0)
     RECOVERING_TIME = 1000
     RECOVERED_TIME = 0
+    MOVE_X_WAY = [3,-3 , 0]
+    MOVE_Y_WAY = [3,-3]
 pass
 
 class Balls():
@@ -41,10 +43,11 @@ class Balls():
         self.rect.bottom += self.dir_y
         self.rect.left+= self.dir_x
         if (self.rect.top <= 0 or self.rect.bottom >= Game_Config.SCREEN_SIZE[1]):
-            self.dir_y *= -1
+            self.dir_y =Game_Config.MOVE_Y_WAY[random.randint(0,1)]
         if (self.rect.left <= 0 or self.rect.right >= Game_Config.SCREEN_SIZE[0]):
-            self.dir_x *= -1
+            self.dir_x =Game_Config.MOVE_X_WAY[random.randint(0,2)]
     pass
+
     def hitted(self , damage):
         self.hp -=damage
         if (self.hp <=0):
@@ -101,6 +104,7 @@ class Player(Balls):
         pass
     pass
 
+
     def move_left(self):
         self.rect.left = self.rect.left - 5
         pass
@@ -130,19 +134,28 @@ class Game():
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode(Game_Config.SCREEN_SIZE)
         pygame.display.set_caption('Simple Game')
+        self.ball_list.clear()
+        self.bullet_list.clear()
         for i in range(10):
-            self.ball_pos_x = random.randint(Game_Config.BALL_SIZE[0],Game_Config.SCREEN_SIZE[0]- Game_Config.BALL_SIZE[0])
-            self.ball_pos_y = random.randint(Game_Config.BALL_SIZE[1],Game_Config.SCREEN_SIZE[1]/2+ Game_Config.BALL_SIZE[1])
-            self.ball_dir_x = -2 #-1=left 1=right
-            self.ball_dir_y = -3 # -1=up 1=down
-            self.ball = Enemy(self.ball_pos_x, self.ball_pos_y, self.ball_dir_x, self.ball_dir_y, 99999)
-            self.ball_list.append(self.ball)
+            self.Add_Enemy(random.randint(Game_Config.BALL_SIZE[0],
+                                         Game_Config.SCREEN_SIZE[0] - Game_Config.BALL_SIZE[0] -15),
+                           random.randint(Game_Config.BALL_SIZE[1],
+                                         int(Game_Config.SCREEN_SIZE[1] / 3) + Game_Config.BALL_SIZE[1]))
         pass
         self.player = Player(Game_Config.SCREEN_SIZE_MID + 30, Game_Config.SCREEN_SIZE[1] - 30)
         self.score = 0
         pygame.time.set_timer(USEREVENT + 1, 500)
+        pygame.time.set_timer(USEREVENT + 2, 870)
     pass
 
+    def Add_Enemy(self , i_pos_x ,i_pos_y):
+        self.ball_pos_x = i_pos_x
+        self.ball_pos_y = i_pos_y
+        self.ball_dir_x = Game_Config.MOVE_X_WAY[random.randint(0,2)]  # -1=left 1=right
+        self.ball_dir_y = -2  # -1=up 1=down
+        self.ball = Enemy(self.ball_pos_x, self.ball_pos_y, self.ball_dir_x, self.ball_dir_y, 2)
+        self.ball_list.append(self.ball)
+    pass
 
     def draw_text(self , screen , text , x , y , color = (255,255,255)):
         myfont = pygame.font.SysFont('Comic Sans MS', 30)
@@ -152,11 +165,14 @@ class Game():
 
     def detect_collision_player(self):
         for enemy in self.ball_list:
-            if (pygame.Rect.colliderect(self.player.rect, enemy.rect) and (self.player.recovering != True)):
-                self.player.recovering = True
-                self.player.hitted()
-                Game_Config.RECOVERED_TIME = time.time()
-                return True , enemy
+            if (pygame.Rect.colliderect(self.player.rect, enemy.rect)):
+                if (self.player.recovering == False):
+                    self.player.recovering = True
+                    self.player.hitted()
+                    Game_Config.RECOVERED_TIME = time.time()
+                    return True , enemy
+                else:
+                    return False , 123
             pass
         return False , 123
     pass
@@ -168,12 +184,18 @@ class Game():
                     self.player.bullet_list.remove(bullet)
                     enemy.hitted(1)
                     self.score += 1
-                    if (enemy.Isdead):
-                        self.ball_list.remove(enemy)
                     return True
                 pass
             pass
         return False
+        pass
+    pass
+
+    def Check_enemy_dead(self):
+        for enemy in self.ball_list:
+            if (enemy.Isdead):
+                self.ball_list.remove(enemy)
+                self.score += 5
         pass
     pass
 
@@ -183,11 +205,17 @@ class Game():
 
     def step(self, action, text="test"):
         for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == USEREVENT+1:
+            #if event.type == QUIT:
+                #pygame.quit()
+                #sys.exit()
+            if self.player.Isdead:
+                Game.__init__(self)
+            if event.type == USEREVENT+1:
                 self.player.shot()
+            if event.type == USEREVENT+2:
+                if (len(self.ball_list) <10):
+                    self.Add_Enemy(random.randint(Game_Config.BALL_SIZE[0],
+                                         Game_Config.SCREEN_SIZE[0] - Game_Config.BALL_SIZE[0] -15), 15)
         # action是MOVE_STAY、MOVE_LEFT、MOVE_RIGHT、MOVE_UP、MOVE_DOWN
         # ai控制腳色上下左右；返回游戏界面像素数和对应的奖励。(像素->奖励->强化角色往奖励高的方向移动)
         if np.array_equal(action, Game_Config.MOVE_LEFT):
@@ -202,17 +230,21 @@ class Game():
             pass
         pass
         self.player.check_Edge()
+        self.Check_enemy_dead()
+
+        terminal =  False
+        if (self.player.Isdead):
+            terminal = True
         if self.player.recovering:
             Game_Config.PLAYERCOLOR = Game_Config.RED
         else:
-            Game_Config.PLAYERCOLOR = (222, 222, 222)
+            Game_Config.PLAYERCOLOR = Game_Config.YELLOW
         pass
         time_pass = time.time() - Game_Config.RECOVERED_TIME
         if self.player.recovering and (time_pass) >= 3:
             self.player.recovering = False
         pass
         self.screen.fill(Game_Config.BLACK)
-        print(Game_Config.PLAYERCOLOR)
         pygame.draw.rect(self.screen, Game_Config.PLAYERCOLOR, self.player.rect)
         for i in range(len(self.ball_list)):
             self.ball_list[i].update()
@@ -227,24 +259,28 @@ class Game():
 
         reward = 0
         IsCollide , CollideEnemy = self.detect_collision_player()
-        if (self.detect_collision_enemy()):
-            reward = 1  # 击中奖励
+
+        if (self.detect_collision_enemy() and not(IsCollide)):
+            reward += 5  # 击中奖励
         if (IsCollide):
             player_pos = abs(self.player.rect.right + self.player.rect.left) / 2.0
             enemy_pos = abs(CollideEnemy.rect.right + CollideEnemy.rect.left) / 2.0
             # reward = -5*((abs( bar_pos -  ball_pos ))/(Game_Config.BAR_SIZE))
-            #reward = -10 * (Game_Config.BALL_SIZE / abs(player_pos - enemy_pos))
-            reward = -10
+            #reward = -10 * (Game_Config.BALL_SIZE[0] / abs(player_pos - enemy_pos))
+            reward += -20
             # reward = -1
+        #elif(not(IsCollide)):
+            #reward = 1
         pass
-        print(reward)
+        #print(reward)
         # show msg (如果有分數的話，要連分數一起抓，必須放在面相素前面，這裡不考慮分數，所以放後面)
         # self.show_text(text)
         # 获得游戏界面像素
         screen_image = pygame.surfarray.array3d(pygame.display.get_surface())
         pygame.display.update()
+        self.clock.tick(60)
         # 返回游戏界面像素和对应的奖励
-        return screen_image, reward, False
+        return screen_image, reward, terminal
     pass
 
     def run (self):
@@ -289,7 +325,6 @@ class Game():
                 self.player.move_down()
             self.player.check_Edge()
             if self.player.recovering:
-
                 Game_Config.PLAYERCOLOR = Game_Config.RED
             else:
                 Game_Config.PLAYERCOLOR = (222,222,222)
@@ -310,7 +345,6 @@ class Game():
                 pygame.display.update()
                 self.clock.tick(60)
                 continue
-            print(Game_Config.PLAYERCOLOR)
             pygame.draw.rect(self.screen, Game_Config.PLAYERCOLOR, self.player.rect)
             for i in range(len(self.ball_list)):
                 self.ball_list[i].update()
